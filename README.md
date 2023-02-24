@@ -28,5 +28,7 @@ ___
 
 ## Documents 
 Planning: Google Doc or [Local Markdown](Documentation/Planning.md)
+
 Threats: Google Doc or [Local Markdown](Documentation/Threats.md)
+
 Security: Google Doc or [Local Markdown](Documentation/Security.md)
