@@ -22,7 +22,7 @@ network to retrieve the names of all other clients connected to the network.
 with other clients and sends the message PING to them. Each client responds back with a PONG
 
 ## Implementation
-The network source code must be in a file called network.py. The client source code must be in a file called client.py. The programming language of choice is Python 3, which is already instead on your Linux VMs.
+The network source code must be in a file called [network.py](Source/Network/network.py). The client source code must be in a file called [client.py](Source/Client/client.py). The programming language of choice is Python 3, which is already instead on your Linux VMs.
 
 ___
 
@@ -32,3 +32,5 @@ Planning: Google Doc or [Local Markdown](Documentation/Planning.md)
 Threats: Google Doc or [Local Markdown](Documentation/Threats.md)
 
 Security: Google Doc or [Local Markdown](Documentation/Security.md)
+
+Running: [Local Markdown](Source/README.md)
