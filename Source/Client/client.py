@@ -1,6 +1,6 @@
 # Import library for timestamps 
 from datetime import datetime
-# Import threading libraries 
+# Import threading libraries - For semaphores and threading
 from threading import *  
 # Import sleep from time
 from time import sleep
@@ -13,17 +13,32 @@ import sys
 
 NetPort = 9999
 
-# This is not waiting the approprate amount of time, this is a known issue, currently for testing
+# Create a global Semaphore for managing access to the clients list
+client_lock = Semaphore(1)
+
+# Create a global variable for managing the continuation of the program
+# If we get an extra run this is not too major so we will try without mutexs
+thrdContinue = True
+
+# This is not waiting the appropriate amount of time, this is a known issue, currently for testing
 def client_Driver(hostname, netIP, Key):
-    clients = flow2_Get_Online(hostname, netIP, Key)
-    sleep(5)
-    for x in range(0,len(clients), 2):
-            flow3_Ping(clients[x], clients[x+1])
-    sleep(5)
+
+    global clients, thrdContinue
+    flow2t = Thread(target = flow2_Get_Online , args = (hostname, netIP, Key,))
+    flow2t.daemon = True
+    flow2t.start()
+    
+    while thrdContinue:
+        sleep(15)
+        client_lock.acquire()
+        for x in range(0,len(clients), 2):
+                flow3_Ping(clients[x], clients[x+1], Key)  
+        client_lock.release()
     
 
-
 def flow3_Ping(clientName, ClientAddr, Key):
+    global clients, thrdContinue
+
     fThreeSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     fThreeSoc.connect((ClientAddr, NetPort))
     
@@ -44,34 +59,41 @@ def flow3_Ping(clientName, ClientAddr, Key):
 
 
     # If we receve a PONG response and it is within a reasonable timestamp range print!
-    if (responce["PING"] == 0 and int(round(datetime.now().timestamp())) - responce['Current-Time'] < 80):
+    if (responce["PING"] == 0 and int(round(datetime.now().timestamp())) - responce['Current-Time'] < 10):
         print( f"PONG < { responce['ClientName'] }")
     
     # Close Connection/Socket
-    fThreeSoc.shutdown()
+    #fThreeSoc.shutdown()
     fThreeSoc.close()
 
 def flow2_Get_Online(hostname, netIP, Key):
-    fTwoSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    fTwoSoc.connect((netIP, NetPort))
-
-    # Send message formatted for requesting online users
-    mssg = json.dumps({"Register":0,"ClientName": hostname, "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
     
-    # Send message to the server, requesting all online accounts 
-    fTwoSoc.send(mssg)
+    global clients
+    while thrdContinue:
+        sleep(10)
 
-    # deserialize array, and return contents
-    clients= json.loads(fTwoSoc.recv(2048)) 
+        fTwoSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        fTwoSoc.connect((netIP, NetPort))
 
-    # Need to check the encrypted authenticity (before json.loads?)
+        # Send message formatted for requesting online users
+        mssg = json.dumps({"Register":0,"ClientName": hostname, "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
+        
+        # Send message to the server, requesting all online accounts 
+        fTwoSoc.send(mssg)
 
-    # Close Connection/Socket
-    fTwoSoc.shutdown()
-    fTwoSoc.close()
+        # Protect the client arr
+        client_lock.acquire()
+        # deserialize array, and return contents
+        clients= json.loads(fTwoSoc.recv(2048)) 
 
-    # Return list of clients
-    return clients
+        # Need to check the encrypted authenticity (before json.loads?)
+        client_lock.release()
+
+        # Close Connection/Socket
+        #fTwoSoc.shutdown()
+        fTwoSoc.close()
+        # Return list of clients
+    #return clients
 
 
 def flow1_Initial_Conn(hostname, netIP):
@@ -86,9 +108,9 @@ def flow1_Initial_Conn(hostname, netIP):
 
     responce = fOneSoc.recv(1024)
     # Parse responce 
-
+    print(responce.decode())
     # Close Connection/Socket
-    fOneSoc.shutdown()
+    #fOneSoc.shutdown()
     fOneSoc.close()
 
 if __name__ == "__main__":
@@ -117,9 +139,17 @@ if __name__ == "__main__":
         exit()
 
     # Initalize the connection
-    flow3_Ping(name, network, 0)
-
-
-
+    drivert = Thread(target = client_Driver, args = (name, network, 0))
+    # Make the driver thread a daemon thread so it is killed once the main is exited 
+    drivert.daemon = True
+    drivert.start()
+    input()
+    # Set Continue flag to false
+    thrdContinue = False
+    # Send a kill message to the local server so it terminates (Exits accept loop)
+    esoc = socket.socket((socket.AF_INET, socket.SOCK_STREAM))
+    esoc.connect(("127.0.0.1", 9999))
+    msg = json.dumps({"PING":-1, "ClientName": "localhost", "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))})
+    #Drivers 
     # Semaphores 
     # https://www.geeksforgeeks.org/synchronization-by-using-semaphore-in-python/

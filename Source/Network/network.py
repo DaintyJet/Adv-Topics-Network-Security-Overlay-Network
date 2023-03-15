@@ -20,5 +20,5 @@ while 1:
     # Debug
     mssg = clientSoc.recv(2048).decode("utf8")
     print(mssg)
-    clientSoc.send(json.dumps(["Host1", "Host2"]).encode("utf8"))
+    clientSoc.send(json.dumps(["Host1", "Host1info"]).encode("utf8"))
     
