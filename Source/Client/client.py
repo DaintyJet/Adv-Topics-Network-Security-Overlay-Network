@@ -67,7 +67,8 @@ def flow3_Ping(clientName, ClientAddr, Key):
     fThreeSoc.close()
 
 def flow2_Get_Online(hostname, netIP, Key):
-    
+    esoc = socket.socket((socket.AF_INET, socket.SOCK_STREAM))
+    esoc.bind(("0.0.0.0", 8888))
     global clients
     while thrdContinue:
         sleep(10)
