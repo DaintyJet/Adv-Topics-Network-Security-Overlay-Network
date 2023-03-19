@@ -12,13 +12,36 @@ import json
 import sys
 
 NetPort = 9999
-
+PeerPort = 9998
 # Create a global Semaphore for managing access to the clients list
 client_lock = Semaphore(1)
 
 # Create a global variable for managing the continuation of the program
 # If we get an extra run this is not too major so we will try without mutexs
 thrdContinue = True
+
+#
+def flow3_pong(hostname, netIP, Key):
+    psoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    psoc.settimeout(5)
+    psoc.bind(("0.0.0.0", PeerPort))
+    psoc.listen(5)
+    while 1:
+        try: 
+            conn, add_port = psoc.accept()
+
+            # Decrypt and validate user
+            recv = json.loads(conn.recv(1024))
+            
+            # Ugly
+            test = recv["ClientName"]
+            print(f"PONG > {test}")
+
+            mssg = json.dumps({"PING":1,"ClientName": hostname, "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
+            conn.send(mssg)
+
+        except socket.timeout as ERR:
+            pass
 
 # This is not waiting the appropriate amount of time, this is a known issue, currently for testing
 def client_Driver(hostname, netIP, Key):
@@ -28,11 +51,17 @@ def client_Driver(hostname, netIP, Key):
     flow2t.daemon = True
     flow2t.start()
     
+
+    flow3t = Thread(target = flow3_pong , args = (hostname, netIP, Key,))
+    flow3t.daemon = True
+    flow3t.start()
+
     while thrdContinue:
         sleep(15)
         client_lock.acquire()
         for x in range(0,len(clients), 2):
                 flow3_Ping(clients[x], clients[x+1], Key)  
+                pass
         client_lock.release()
     
 
@@ -40,7 +69,7 @@ def flow3_Ping(clientName, ClientAddr, Key):
     global clients, thrdContinue
 
     fThreeSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    fThreeSoc.connect((ClientAddr, NetPort))
+    fThreeSoc.connect((ClientAddr, PeerPort))
     
     # Generate message 
     mssg = json.dumps({"PING":1,"ClientName": clientName, "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
@@ -67,8 +96,6 @@ def flow3_Ping(clientName, ClientAddr, Key):
     fThreeSoc.close()
 
 def flow2_Get_Online(hostname, netIP, Key):
-    esoc = socket.socket((socket.AF_INET, socket.SOCK_STREAM))
-    esoc.bind(("0.0.0.0", 8888))
     global clients
     while thrdContinue:
         sleep(10)
@@ -148,9 +175,16 @@ if __name__ == "__main__":
     # Set Continue flag to false
     thrdContinue = False
     # Send a kill message to the local server so it terminates (Exits accept loop)
-    esoc = socket.socket((socket.AF_INET, socket.SOCK_STREAM))
-    esoc.connect(("127.0.0.1", 9999))
-    msg = json.dumps({"PING":-1, "ClientName": "localhost", "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))})
-    #Drivers 
-    # Semaphores 
-    # https://www.geeksforgeeks.org/synchronization-by-using-semaphore-in-python/
+    
+    
+    
+    #esoc = socket.socket((socket.AF_INET, socket.SOCK_STREAM))
+    #esoc.connect(("127.0.0.1", 9999))
+    #msg = json.dumps({"PING":-1, "ClientName": "localhost", "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))})
+    
+    
+    
+    
+#Drivers 
+# Semaphores 
+# https://www.geeksforgeeks.org/synchronization-by-using-semaphore-in-python/
