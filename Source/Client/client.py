@@ -28,14 +28,10 @@ def client_listen(hostname, Key):
     psoc.settimeout(5)
     psoc.bind(("0.0.0.0", PeerPort))
     psoc.listen(5)
-    print("Here")
-    thrd_list = []
     while 1:
         try: 
             conn, add_port = psoc.accept()
-            thrd_list.append(Thread(target=flow3_pong, args=(hostname, conn, add_port, Key,)))
-            thrd_list[len(thrd_list) - 1].start()
-            
+            Thread(target=flow3_pong, args=(hostname, conn, add_port, Key,)).start()
 
         except socket.timeout as ERR:
             pass
@@ -56,16 +52,15 @@ def client_Driver(hostname, netIP, Key):
     while thrdContinue:
         sleep(15)
         client_lock.acquire()
+        dictc = {"ClientName":[], "IP":[], "CERT":[]}
         for x in range(0,len(clients), 2):
-                flow3_Ping(clients[x], clients[x+1], Key)  
+                flow3_ping(clients[x], clients[x+1], Key)  
                 pass
         client_lock.release()
     
 def flow3_pong (hostname, conn, add_port, Key):
             # Decrypt and validate user
             recv = json.loads(conn.recv(1024))
-            
-            print("Here2")
 
             # Ugly
             test = recv["ClientName"]
@@ -75,7 +70,7 @@ def flow3_pong (hostname, conn, add_port, Key):
             conn.send(mssg)
 
 
-def flow3_Ping(clientName, ClientAddr, Key):
+def flow3_ping(clientName, ClientAddr, Key):
     global clients, thrdContinue
 
     fThreeSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
