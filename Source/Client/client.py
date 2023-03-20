@@ -21,24 +21,21 @@ client_lock = Semaphore(1)
 thrdContinue = True
 
 #
-def flow3_pong(hostname, netIP, Key):
+
+
+def client_listen(hostname, Key):
     psoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     psoc.settimeout(5)
     psoc.bind(("0.0.0.0", PeerPort))
     psoc.listen(5)
+    print("Here")
+    thrd_list = []
     while 1:
         try: 
             conn, add_port = psoc.accept()
-
-            # Decrypt and validate user
-            recv = json.loads(conn.recv(1024))
+            thrd_list.append(Thread(target=flow3_pong, args=(hostname, conn, add_port, Key,)))
+            thrd_list[len(thrd_list) - 1].start()
             
-            # Ugly
-            test = recv["ClientName"]
-            print(f"PONG > {test}")
-
-            mssg = json.dumps({"PING":1,"ClientName": hostname, "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
-            conn.send(mssg)
 
         except socket.timeout as ERR:
             pass
@@ -52,7 +49,7 @@ def client_Driver(hostname, netIP, Key):
     flow2t.start()
     
 
-    flow3t = Thread(target = flow3_pong , args = (hostname, netIP, Key,))
+    flow3t = Thread(target = client_listen , args = (hostname, Key,))
     flow3t.daemon = True
     flow3t.start()
 
@@ -64,6 +61,19 @@ def client_Driver(hostname, netIP, Key):
                 pass
         client_lock.release()
     
+def flow3_pong (hostname, conn, add_port, Key):
+            # Decrypt and validate user
+            recv = json.loads(conn.recv(1024))
+            
+            print("Here2")
+
+            # Ugly
+            test = recv["ClientName"]
+            print(f"PONG > {test}")
+
+            mssg = json.dumps({"PING":1,"ClientName": hostname, "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
+            conn.send(mssg)
+
 
 def flow3_Ping(clientName, ClientAddr, Key):
     global clients, thrdContinue
