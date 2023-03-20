@@ -10,6 +10,10 @@ import socket
 import json
 # Import sys for command line arguments 
 import sys
+# Used to get the IP of the machine (eth0)
+import netifaces as ni
+ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+
 
 NetPort = 9999
 PeerPort = 9998
@@ -66,7 +70,7 @@ def flow3_pong (hostname, conn, add_port, Key):
             test = recv["ClientName"]
             print(f"PONG > {test}")
 
-            mssg = json.dumps({"PING":1,"ClientName": hostname, "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
+            mssg = json.dumps({"PING":1,"ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
             conn.send(mssg)
 
 
@@ -77,7 +81,7 @@ def flow3_ping(clientName, ClientAddr, Key):
     fThreeSoc.connect((ClientAddr, PeerPort))
     
     # Generate message 
-    mssg = json.dumps({"PING":1,"ClientName": clientName, "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
+    mssg = json.dumps({"PING":1,"ClientName": clientName, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
 
     # Print out PING status
     print(f"PING > {clientName}")
@@ -109,7 +113,7 @@ def flow2_Get_Online(hostname, netIP, Key):
         fTwoSoc.connect((netIP, NetPort))
 
         # Send message formatted for requesting online users
-        mssg = json.dumps({"Register":0,"ClientName": hostname, "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
+        mssg = json.dumps({"Register":0,"ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
         
         # Send message to the server, requesting all online accounts 
         fTwoSoc.send(mssg)
@@ -136,7 +140,7 @@ def flow1_Initial_Conn(hostname, netIP):
     fOneSoc.connect((netIP, NetPort))
     
     # Initial message contains everything, later separate them out 
-    mssg = json.dumps({"Register": 1, "ClientName": hostname, "HostIP":socket.gethostbyname(socket.gethostname()),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
+    mssg = json.dumps({"Register": 1, "ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
     fOneSoc.send(mssg)
 
     responce = fOneSoc.recv(1024)
