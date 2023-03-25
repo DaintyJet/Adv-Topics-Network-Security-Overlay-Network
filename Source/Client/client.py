@@ -11,8 +11,8 @@ import json
 # Import sys for command line arguments 
 import sys
 # Used to get the IP of the machine (eth0)
-import netifaces as ni
-ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+#import netifaces as ni
+ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
 
 
 NetPort = 9999
@@ -56,7 +56,7 @@ def client_Driver(hostname, netIP, Key):
     while thrdContinue:
         sleep(15)
         client_lock.acquire()
-        dictc = {"ClientName":[], "IP":[], "CERT":[]}
+        # dictc = {"ClientName":[], "IP":[], "CERT":[]}
         for x in range(0,len(clients), 2):
                 flow3_ping(clients[x], clients[x+1], Key)  
                 pass
@@ -113,7 +113,7 @@ def flow2_Get_Online(hostname, netIP, Key):
         fTwoSoc.connect((netIP, NetPort))
 
         # Send message formatted for requesting online users
-        mssg = json.dumps({"Register":0,"ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
+        mssg = json.dumps({"Flag":1,"ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
         
         # Send message to the server, requesting all online accounts 
         fTwoSoc.send(mssg)
@@ -140,11 +140,12 @@ def flow1_Initial_Conn(hostname, netIP):
     fOneSoc.connect((netIP, NetPort))
     
     # Initial message contains everything, later separate them out 
-    mssg = json.dumps({"Register": 1, "ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
+    mssg = json.dumps({"Flag": 0, "ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
     fOneSoc.send(mssg)
 
     responce = fOneSoc.recv(1024)
-    # Parse responce 
+    # Parse responce
+     
     print(responce.decode())
     # Close Connection/Socket
     #fOneSoc.shutdown()
@@ -179,7 +180,8 @@ if __name__ == "__main__":
     drivert = Thread(target = client_Driver, args = (name, network, 0))
     # Make the driver thread a daemon thread so it is killed once the main is exited 
     drivert.daemon = True
-    drivert.start()
+    #drivert.start()
+    flow1_Initial_Conn(name, network)
     input()
     # Set Continue flag to false
     thrdContinue = False

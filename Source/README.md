@@ -13,3 +13,12 @@ The client will register to the serer if it has not already done so. This means 
 ## Network
 The network controller program is located in the [network.py program](Network/network.py)
 
+
+
+
+
+
+
+
+NetworkServer X(9999)
+x.start()
