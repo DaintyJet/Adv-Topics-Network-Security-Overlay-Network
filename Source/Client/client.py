@@ -122,8 +122,16 @@ def flow2_Get_Online(hostname, netIP, Key):
 
         # Protect the client arr
         client_lock.acquire()
+
         # deserialize array, and return contents
-        clients= json.loads(fTwoSoc.recv(2048)) 
+        responce = bytearray()
+        while True:
+            temp = fTwoSoc.recv(2048)
+            if not temp:
+                 break
+            responce.extend(temp)
+        
+        clients= json.loads(responce) 
 
         # Debugging
         print(clients)

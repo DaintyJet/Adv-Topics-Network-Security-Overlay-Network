@@ -2,6 +2,7 @@ from datetime import datetime
 import socket
 import threading
 import json
+import os
 import time
 # Used to get the IP of the machine (eth0)
 #import netifaces as ni
@@ -16,6 +17,12 @@ class Server:
         self.list_lock = threading.Semaphore(1)
 
     def start(self):
+
+        if (os.path.exists("client-list.json")):
+            with open("client-list.json") as FILE:
+               self.clients = json.load(FILE) 
+               print(self.clients)
+        
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.settimeout(3)
         self.sock.bind(("0.0.0.0", self.port))
@@ -45,7 +52,7 @@ class Server:
             # Grab Semaphore
             self.list_lock.acquire()
             # Parse the msg, TRUE IS PLACEHOLDER
-            if ( False and msg["ClientName"] not in self.clients["Hostname"] and msg["HostIP"] not in self.clients["HostIP"]):
+            if ( msg["ClientName"] not in self.clients["Hostname"] and msg["HostIP"] not in self.clients["HostIP"]):
                 # If the client is not registered we should not be providing information
                 conn.send(json.dumps({"Flag":-1, "NetworkIP":ip, "Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8"))
                 # Nothing else is needed, return.
@@ -54,12 +61,11 @@ class Server:
             # Generate response 
             response = {"Flag":2, "NetworkIP":ip, "Clients": self.clients["Hostname"], "IPs":self.clients["HostIP"], "Current-Time":int(round(datetime.now().timestamp()))}
 
-            # Send response 
-            conn.send(json.dumps(response).encode("utf8"))
-            
+            # Send response (try sendall later)
+            conn.sendall(json.dumps(response).encode("utf8"))
+
             # Release the lock
             self.list_lock.release()
-            print("Good 1")
         elif ( msg["Flag"] == 0 and msg["HostIP"] == addr[0] and (msg["Current-Time"] - int(round(datetime.now().timestamp())) < 10 )):
             # acquire Semaphore 
             self.list_lock.acquire()
@@ -72,7 +78,8 @@ class Server:
                 # We store the necessary info
                 self.clients["Hostname"].append(msg["ClientName"])
                 self.clients["HostIP"].append(msg["HostIP"])
-
+                with open("client-list.json", "w") as FILE:
+                    FILE.write(json.dumps(self.clients))
                 # Write to file
                 pass 
             else:
