@@ -43,6 +43,8 @@ def client_listen(hostname, Key):
 # This is not waiting the appropriate amount of time, this is a known issue, currently for testing
 def client_Driver(hostname, netIP, Key):
 
+    flow1_Initial_Conn(hostname, netIP)
+    
     global clients, thrdContinue
     flow2t = Thread(target = flow2_Get_Online , args = (hostname, netIP, Key,))
     flow2t.daemon = True
@@ -57,8 +59,8 @@ def client_Driver(hostname, netIP, Key):
         sleep(15)
         client_lock.acquire()
         # dictc = {"ClientName":[], "IP":[], "CERT":[]}
-        for x in range(0,len(clients), 2):
-                flow3_ping(clients[x], clients[x+1], Key)  
+        for x in range(0,len(clients[""])):
+                flow3_ping(clients["Clients"], clients["IPs"], Key)  
                 pass
         client_lock.release()
     
@@ -123,6 +125,9 @@ def flow2_Get_Online(hostname, netIP, Key):
         # deserialize array, and return contents
         clients= json.loads(fTwoSoc.recv(2048)) 
 
+        # Debugging
+        print(clients)
+
         # Need to check the encrypted authenticity (before json.loads?)
         client_lock.release()
 
@@ -145,7 +150,8 @@ def flow1_Initial_Conn(hostname, netIP):
 
     responce = fOneSoc.recv(1024)
     # Parse responce
-     
+    
+    # Debugging
     print(responce.decode())
     # Close Connection/Socket
     #fOneSoc.shutdown()
@@ -180,8 +186,9 @@ if __name__ == "__main__":
     drivert = Thread(target = client_Driver, args = (name, network, 0))
     # Make the driver thread a daemon thread so it is killed once the main is exited 
     drivert.daemon = True
-    #drivert.start()
-    flow1_Initial_Conn(name, network)
+    drivert.start()
+    
+    
     input()
     # Set Continue flag to false
     thrdContinue = False
