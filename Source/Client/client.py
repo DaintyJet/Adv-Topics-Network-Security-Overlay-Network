@@ -59,8 +59,8 @@ def client_Driver(hostname, netIP, Key):
         sleep(15)
         client_lock.acquire()
         # dictc = {"ClientName":[], "IP":[], "CERT":[]}
-        for x in range(0,len(clients[""])):
-                flow3_ping(clients["Clients"], clients["IPs"], Key)  
+        for x in range(0,len(clients["Clients"])):
+                flow3_ping(clients["Clients"][x], clients["IPs"][x], Key)  
                 pass
         client_lock.release()
     
