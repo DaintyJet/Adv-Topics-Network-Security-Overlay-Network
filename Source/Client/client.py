@@ -1,5 +1,7 @@
 # Import library for timestamps 
 from datetime import datetime
+# Import the RSA algorithms
+from Crypto.PublicKey import RSA
 # Import threading libraries - For semaphores and threading
 from threading import *  
 # Import sleep from time
@@ -10,6 +12,8 @@ import socket
 import json
 # Import sys for command line arguments 
 import sys
+# Does not work on Matts Machine do ip = <LOCAL>
+# sorry for that
 # Used to get the IP of the machine (eth0)
 #import netifaces as ni
 ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
@@ -45,6 +49,7 @@ def client_Driver(hostname, netIP, Key):
 
     flow1_Initial_Conn(hostname, netIP)
     
+    print("Here")
     global clients, thrdContinue
     flow2t = Thread(target = flow2_Get_Online , args = (hostname, netIP, Key,))
     flow2t.daemon = True
@@ -60,8 +65,9 @@ def client_Driver(hostname, netIP, Key):
         client_lock.acquire()
         # dictc = {"ClientName":[], "IP":[], "CERT":[]}
         for x in range(0,len(clients["Clients"])):
-                flow3_ping(clients["Clients"][x], clients["IPs"][x], Key)  
-                pass
+                # May want to do this work on the server's side.
+                if not (ip == clients["IPs"][x]):
+                    flow3_ping(clients["Clients"][x], clients["IPs"][x], Key)  
         client_lock.release()
     
 def flow3_pong (hostname, conn, add_port, Key):
@@ -72,36 +78,39 @@ def flow3_pong (hostname, conn, add_port, Key):
             test = recv["ClientName"]
             print(f"PONG > {test}")
 
-            mssg = json.dumps({"PING":1,"ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
+            mssg = json.dumps({"PING":0,"ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
             conn.send(mssg)
 
 
 def flow3_ping(clientName, ClientAddr, Key):
+    # Need to set a timeout
     global clients, thrdContinue
-
     fThreeSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    fThreeSoc.connect((ClientAddr, PeerPort))
-    
-    # Generate message 
-    mssg = json.dumps({"PING":1,"ClientName": clientName, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
+    fThreeSoc.settimeout(3)
+    try:
+        fThreeSoc.connect((ClientAddr, PeerPort))
+        
+        # Generate message 
+        mssg = json.dumps({"PING":1,"ClientName": clientName, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
 
-    # Print out PING status
-    print(f"PING > {clientName}")
+        # Print out PING status
+        print(f"PING > {clientName}")
 
-    # Send message to the Client, requesting all online accounts 
-    fThreeSoc.send(mssg)
+        # Send message to the Client, requesting all online accounts 
+        fThreeSoc.send(mssg)
 
-    responce = json.loads(fThreeSoc.recv(1024))
-    # Testing!
-    responce = ({"PING":0, "ClientName":"Test", "Current-Time":int(round(datetime.now().timestamp()))})
+        responce = json.loads(fThreeSoc.recv(1024))
+        # Testing!
+        # responce = ({"PING":0, "ClientName":"Test", "Current-Time":int(round(datetime.now().timestamp()))})
 
-    # Need to check the encrypted authenticity
+        # Need to check the encrypted authenticity
 
+        # If we receve a PONG response and it is within a reasonable timestamp range print!
+        if (responce["PING"] == 0 and int(round(datetime.now().timestamp())) - responce['Current-Time'] < 10):
+            print( f"PONG < { responce['ClientName'] }")
+    except socket.error:
+        print(f"Unable to connect to Client: {clientName} at IP:{ClientAddr}")
 
-    # If we receve a PONG response and it is within a reasonable timestamp range print!
-    if (responce["PING"] == 0 and int(round(datetime.now().timestamp())) - responce['Current-Time'] < 10):
-        print( f"PONG < { responce['ClientName'] }")
-    
     # Close Connection/Socket
     #fThreeSoc.shutdown()
     fThreeSoc.close()
@@ -119,7 +128,8 @@ def flow2_Get_Online(hostname, netIP, Key):
         
         # Send message to the server, requesting all online accounts 
         fTwoSoc.send(mssg)
-
+        # Shut down writing to the socket
+        fTwoSoc.shutdown(socket.SHUT_WR)
         # Protect the client arr
         client_lock.acquire()
 
@@ -152,9 +162,22 @@ def flow1_Initial_Conn(hostname, netIP):
     # Connect the socket to the network controller
     fOneSoc.connect((netIP, NetPort))
     
+    # Create Public and Private RSA key pair
+    key = RSA.generate(2048)
+    private_key = key.export_key()
+    file_out = open("private.pem", "wb")
+    file_out.write(private_key)
+    file_out.close()
+
+    public_key = key.publickey().export_key()
+    file_out = open("receiver.pem", "wb")
+    file_out.write(public_key)
+    file_out.close()
+
     # Initial message contains everything, later separate them out 
-    mssg = json.dumps({"Flag": 0, "ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
-    fOneSoc.send(mssg)
+    mssg = json.dumps({"Flag": 0, "ClientName": hostname, "HostIP":ip, "ClientPubKey":str(public_key),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
+    fOneSoc.sendall(mssg)
+    fOneSoc.shutdown(socket.SHUT_WR)
 
     responce = fOneSoc.recv(1024)
     # Parse responce
@@ -162,7 +185,7 @@ def flow1_Initial_Conn(hostname, netIP):
     # Debugging
     print(responce.decode())
     # Close Connection/Socket
-    #fOneSoc.shutdown()
+    fOneSoc.shutdown(socket.SHUT_RD)
     fOneSoc.close()
 
 if __name__ == "__main__":
