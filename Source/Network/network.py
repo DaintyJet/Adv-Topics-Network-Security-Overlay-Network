@@ -18,6 +18,10 @@ import threading
 import json
 import os
 import time
+
+## Testing
+import base64
+
 # Used to get the IP of the machine (eth0)
 #import netifaces as ni
 ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
@@ -43,6 +47,18 @@ class Server:
         self.sock.listen(5)
 
         print(f'Server listening on port {self.port}')
+
+        # Create Public and Private RSA key pair
+        key = RSA.generate(2048)
+        private_key = key.export_key()
+        file_out = open("server_private.pem", "wb")
+        file_out.write(private_key)
+        file_out.close()
+
+        public_key = key.publickey().export_key()
+        file_out = open("server_receiver.pem", "wb")
+        file_out.write(public_key)
+        file_out.close()
 
         while True:
             try:
@@ -119,27 +135,29 @@ class Server:
             # This is going to parse the registering message
                 # is it already registered
             if ( msg["ClientName"] not in self.clients["Hostname"] and msg["HostIP"] not in self.clients["HostIP"]):
-                # Create hash function for custom cert
                 cert_hash_function = SHA256.new()
-                
+                # Registering the client
                 # Create a certificate
-                cert = json.dumps({"ClientName":msg["ClientName"], "ClientIP":msg["HostIP"] ,"ClientPubKey":msg["ClientPubKey"]}).encode("utf8")
-                # Load Hash function with the cert
-                cert_hash_function.update(cert)
+                    # User a JSON Dictionary or something
+                cert = json.dumps({"ClientName":msg["ClientName"], "ClientIP":msg["HostIP"] ,"ClientPubKey":msg["ClientPubKey"]})
+                #t1 = cert_hash_function.update(cert)
                 
-                # Load Server key from file 
-                priv_file = open("cert/server.key", "r")
+                #
+                #t2 = cert_hash_function.hexdigest()
 
-                # Sign the hash of the cert
-                client_crt = pkcs1_15.new(RSA.import_key(priv_file.read())).sign(cert_hash_function)
+
+                key = RSA.import_key(open('server_private.pem').read())
+                h = SHA256.new(cert.encode("utf8"))
+                signature = pkcs1_15.new(key).sign(h)
                 
-                priv_file.close()
-                print(client_crt)
+                response = json.dumps({"Message":cert, "Signature": str(signature)}).encode("utf8")
 
-                ### Testing
-                testKey = RSA.import_key("cert/server_public.pem")
-                pkcs1_15.new(testKey).verify(cert_hash_function,client_crt)
-                print("Valid")
+                conn.sendall(response)
+
+                #private_key = key.export_key()
+                #file_out = open("server_private.pem", "wb")
+                #file_out.write(private_key)
+                #file_out.close()
                 
                 # We store the necessary info
                 self.clients["Hostname"].append(msg["ClientName"])

@@ -12,9 +12,17 @@ import socket
 import json
 # Import sys for command line arguments 
 import sys
+
+from Crypto.Signature import pkcs1_15
+from Crypto.Hash import SHA256
+from Crypto.PublicKey import RSA
 # Does not work on Matts Machine do ip = <LOCAL>
 # sorry for that
 # Used to get the IP of the machine (eth0)
+
+### Testing
+import base64
+
 #import netifaces as ni
 ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
 
@@ -179,11 +187,22 @@ def flow1_Initial_Conn(hostname, netIP):
     fOneSoc.sendall(mssg)
     fOneSoc.shutdown(socket.SHUT_WR)
 
-    responce = fOneSoc.recv(1024)
-    # Parse responce
-    
-    # Debugging
-    print(responce.decode())
+    # Messge should be 
+    # Message, Signiture
+    # Decrypting
+    responce = json.loads(fOneSoc.recv(2048))
+    print("Here")
+    print(responce)
+    t1 = responce["Message"]
+    signature = bytes(responce["Signature"], 'utf8')
+
+    key = RSA.import_key(open('../Network/server_receiver.pem').read())
+    h = SHA256.new(t1.encode())
+    try:
+        pkcs1_15.new(key).verify(h, signature)
+        print("The signature is valid.")
+    except (ValueError, TypeError):
+        print("error")
     # Close Connection/Socket
     fOneSoc.shutdown(socket.SHUT_RD)
     fOneSoc.close()
