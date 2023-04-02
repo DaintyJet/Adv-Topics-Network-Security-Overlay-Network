@@ -1,4 +1,5 @@
 from datetime import datetime
+from Crypto.Hash import SHA256
 import socket
 import threading
 import json
@@ -105,11 +106,16 @@ class Server:
             # This is going to parse the registering message
                 # is it already registered
             if ( msg["ClientName"] not in self.clients["Hostname"] and msg["HostIP"] not in self.clients["HostIP"]):
+                cert_hash_function = SHA256.new()
                 # Registering the client
                 # Create a certificate
                     # User a JSON Dictionary or something
+                cert = json.dumps({"ClientName":msg["ClientName"], "ClientIP":msg["HostIP"] ,"ClientPubKey":msg["ClientPubKey"]}).encode("utf8")
+                cert_hash_function.update(cert)
                 
-
+                #
+                cert_hash_function.hexdigest()
+                
                 # We store the necessary info
                 self.clients["Hostname"].append(msg["ClientName"])
                 self.clients["HostIP"].append(msg["HostIP"])
