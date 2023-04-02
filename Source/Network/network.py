@@ -1,7 +1,20 @@
+# Import Date time for Timestamps
 from datetime import datetime
+# Import Hashing function for certificates
 from Crypto.Hash import SHA256
+# Import AES and RSA Ciphers
+from Crypto.Cipher import AES, PKCS1_OAEP
+# For Signatures
+from Crypto.Signature import pkcs1_15
+# Import RAS PK Functions
+from Crypto.PublicKey import RSA
+# Import socket from socket functions
 import socket
+# import ssl functions for network <-> client communications
+# import ssl
+# Import threading to support multithreaded 
 import threading
+# Import Json for json functions!
 import json
 import os
 import time
@@ -106,15 +119,27 @@ class Server:
             # This is going to parse the registering message
                 # is it already registered
             if ( msg["ClientName"] not in self.clients["Hostname"] and msg["HostIP"] not in self.clients["HostIP"]):
+                # Create hash function for custom cert
                 cert_hash_function = SHA256.new()
-                # Registering the client
+                
                 # Create a certificate
-                    # User a JSON Dictionary or something
                 cert = json.dumps({"ClientName":msg["ClientName"], "ClientIP":msg["HostIP"] ,"ClientPubKey":msg["ClientPubKey"]}).encode("utf8")
+                # Load Hash function with the cert
                 cert_hash_function.update(cert)
                 
-                #
-                cert_hash_function.hexdigest()
+                # Load Server key from file 
+                priv_file = open("cert/server.key", "r")
+
+                # Sign the hash of the cert
+                client_crt = pkcs1_15.new(RSA.import_key(priv_file.read())).sign(cert_hash_function)
+                
+                priv_file.close()
+                print(client_crt)
+
+                ### Testing
+                testKey = RSA.import_key("cert/server_public.pem")
+                pkcs1_15.new(testKey).verify(cert_hash_function,client_crt)
+                print("Valid")
                 
                 # We store the necessary info
                 self.clients["Hostname"].append(msg["ClientName"])
