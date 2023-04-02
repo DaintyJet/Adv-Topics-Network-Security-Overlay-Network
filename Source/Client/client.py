@@ -193,11 +193,11 @@ def flow1_Initial_Conn(hostname, netIP):
     responce = json.loads(fOneSoc.recv(2048))
     print("Here")
     print(responce)
-    t1 = responce["Message"]
-    signature = bytes(responce["Signature"], 'utf8')
-
+    t1 = responce["Message"].encode("utf8")
+    signature = bytes(responce["Signature"], 'ascii')
+    print(f"\n\n{signature}")
     key = RSA.import_key(open('../Network/server_receiver.pem').read())
-    h = SHA256.new(t1.encode())
+    h = SHA256.new(t1)
     try:
         pkcs1_15.new(key).verify(h, signature)
         print("The signature is valid.")
