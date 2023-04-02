@@ -133,7 +133,9 @@ class Server:
         #while True:
         #    time.sleep(10) # Flow 2
         #    conn.sendall(str(self.clients.keys()).encode())
-
+    def create_client_cert(client_public_key):
+        pass
+        
             
 if __name__ == '__main__':
     server = Server(9999)
