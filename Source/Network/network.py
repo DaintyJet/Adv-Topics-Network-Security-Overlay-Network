@@ -19,9 +19,6 @@ import json
 import os
 import time
 
-## Testing
-import base64
-
 # Used to get the IP of the machine (eth0)
 #import netifaces as ni
 ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
@@ -147,12 +144,27 @@ class Server:
 
 
                 key = RSA.import_key(open('server_private.pem').read())
-                h = SHA256.new(cert.encode("utf8"))
+                h = SHA256.new()
+                h.update(cert.encode("utf8"))
                 signature = pkcs1_15.new(key).sign(h)
                 
-                response = json.dumps({"Message":cert, "Signature": str(signature)}).encode("utf8")
+                
+                print(f'\n\nCert Str:\n {cert.encode("utf8")}\n\n Signature:\n{signature} \n\n Hash: \n{str(h.hexdigest())}')
 
-                conn.sendall(response)
+                # Debug TEsting 
+                try:
+                    key = RSA.import_key(open('server_receiver.pem').read())
+                    print(f"\n\n Key: {key.export_key()}\n")
+                    
+                    pkcs1_15.new(key).verify(h, signature)
+                    print("The signature is valid.")
+                except (ValueError, TypeError):
+                     print("error")
+                
+                # Debug TEsting END
+                response = json.dumps({"Message":cert, "Signature": str(signature)})
+
+                conn.sendall(response.encode("utf8"))
 
                 #private_key = key.export_key()
                 #file_out = open("server_private.pem", "wb")
