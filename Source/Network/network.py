@@ -136,7 +136,7 @@ class Server:
                 # Registering the client
                 # Create a certificate
                     # User a JSON Dictionary or something
-                cert = json.dumps({"ClientName":msg["ClientName"], "ClientIP":msg["HostIP"] ,"ClientPubKey":msg["ClientPubKey"]})
+                cert = json.dumps({"ClientName":msg["ClientName"], "ClientIP":msg["HostIP"] ,"ClientPubKey":str(msg["ClientPubKey"])})
                 #t1 = cert_hash_function.update(cert)
                 
                 #
@@ -146,7 +146,7 @@ class Server:
                 key = RSA.import_key(open('server_private.pem').read())
                 h = SHA256.new()
                 h.update(cert.encode("utf8"))
-                signature = pkcs1_15.new(key).sign(h)
+                signature = (pkcs1_15.new(key).sign(h)).hex()
                 
                 
                 print(f'\n\nCert Str:\n {cert.encode("utf8")}\n\n Signature:\n{signature} \n\n Hash: \n{str(h.hexdigest())}')
@@ -155,14 +155,14 @@ class Server:
                 try:
                     key = RSA.import_key(open('server_receiver.pem').read())
                     print(f"\n\n Key: {key.export_key()}\n")
-                    
+
                     pkcs1_15.new(key).verify(h, signature)
                     print("The signature is valid.")
                 except (ValueError, TypeError):
                      print("error")
                 
                 # Debug TEsting END
-                response = json.dumps({"Message":cert, "Signature": str(signature)})
+                response = json.dumps({"Message":cert, "Signature": signature})
 
                 conn.sendall(response.encode("utf8"))
 

@@ -57,7 +57,6 @@ def client_Driver(hostname, netIP, Key):
 
     flow1_Initial_Conn(hostname, netIP)
     
-    print("Here")
     global clients, thrdContinue
     flow2t = Thread(target = flow2_Get_Online , args = (hostname, netIP, Key,))
     flow2t.daemon = True
@@ -193,15 +192,16 @@ def flow1_Initial_Conn(hostname, netIP):
     responce = json.loads(fOneSoc.recv(2048))
 
     
-    t1 = responce["Message"].encode("utf8")
-    signature = responce["Signature"]
+    t1 = responce["Message"]
+    signature = bytes.fromhex(responce["Signature"])
 
     key = RSA.import_key(open('../Network/server_receiver.pem').read())
     h = SHA256.new()
-    h.update(t1)
+    h.update(t1.encode("utf8"))
     
     # testing/Debugging
     ts = pkcs1_15.new(RSA.import_key(open('../Network/server_private.pem').read())).sign(h)
+    print(f'\n\nThe Type of Test {type(ts)}\n\nThey type of the signature is {type(signature)}\n\n')
     # testing/Debugging end
 
     print(f'\n\nCert Str:\n {t1}\n\n Received Signature:\n{signature} \n\n Test Signature\n{ts}\n\n Hash: \n{str(h.hexdigest())}\n\n Key: {key.export_key()}\n')
