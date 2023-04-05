@@ -12,17 +12,17 @@ import socket
 import json
 # Import sys for command line arguments 
 import sys
+# Import os for path and file manipulation
+import os
 
+# Crypto 
 from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
+
 # Does not work on Matts Machine do ip = <LOCAL>
 # sorry for that
 # Used to get the IP of the machine (eth0)
-
-### Testing
-import base64
-
 #import netifaces as ni
 ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
 
@@ -36,8 +36,18 @@ client_lock = Semaphore(1)
 # If we get an extra run this is not too major so we will try without mutexs
 thrdContinue = True
 
-#
+# This is a function that takes a responce in the form Message, Signature and will validate it using they key passed as an argument
+def client_parse_verify(responce,key):
+    
+    signature = bytes.fromhex(responce["Signature"])
 
+    h = SHA256.new(responce["Message"].encode("utf8"))
+
+    try:
+        pkcs1_15.new(key).verify(h, signature)
+        return True
+    except (ValueError, TypeError):
+        return False
 
 def client_listen(hostname, Key):
     psoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,7 +80,6 @@ def client_Driver(hostname, netIP, Key):
     while thrdContinue:
         sleep(15)
         client_lock.acquire()
-        # dictc = {"ClientName":[], "IP":[], "CERT":[]}
         for x in range(0,len(clients["Clients"])):
                 # May want to do this work on the server's side.
                 if not (ip == clients["IPs"][x]):
@@ -162,55 +171,31 @@ def flow2_Get_Online(hostname, netIP, Key):
         # Return list of clients
     #return clients
 
-
+# Return true or false 
 def flow1_Initial_Conn(hostname, netIP):
     # create the socket
     fOneSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Connect the socket to the network controller
     fOneSoc.connect((netIP, NetPort))
     
-    # Create Public and Private RSA key pair
-    key = RSA.generate(2048)
-    private_key = key.export_key()
-    file_out = open("private.pem", "wb")
-    file_out.write(private_key)
-    file_out.close()
-
-    public_key = key.publickey().export_key()
-    file_out = open("receiver.pem", "wb")
-    file_out.write(public_key)
-    file_out.close()
-
     # Initial message contains everything, later separate them out 
     mssg = json.dumps({"Flag": 0, "ClientName": hostname, "HostIP":ip, "ClientPubKey":str(public_key),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
     fOneSoc.sendall(mssg)
     fOneSoc.shutdown(socket.SHUT_WR)
 
-    # Messge should be 
-    # Message, Signiture
-    # Decrypting
+    # This first message should be whether we are registered or not.
     responce = json.loads(fOneSoc.recv(2048))
-
     
-    t1 = responce["Message"]
-    signature = bytes.fromhex(responce["Signature"])
-
-    key = RSA.import_key(open('../Network/server_receiver.pem').read())
-    h = SHA256.new()
-    h.update(t1.encode("utf8"))
-    
-    # testing/Debugging
-    ts = pkcs1_15.new(RSA.import_key(open('../Network/server_private.pem').read())).sign(h)
-    print(f'\n\nThe Type of Test {type(ts)}\n\nThey type of the signature is {type(signature)}\n\n')
-    # testing/Debugging end
-
-    print(f'\n\nCert Str:\n {t1}\n\n Received Signature:\n{signature} \n\n Test Signature\n{ts}\n\n Hash: \n{str(h.hexdigest())}\n\n Key: {key.export_key()}\n')
-
-    try:
-        pkcs1_15.new(key).verify(h, signature)
-        print("The signature is valid.")
-    except (ValueError, TypeError):
-        print("error")
+    # If we receive a flag of value 0 we would need to parse the message containing the client certificate (this will need to be verified)
+    # Otherwise we have no need to do anything as we do not have a certificate
+    if (responce["Flag"] == 0):
+        key = RSA.import_key(open('../Network/server_receiver.pem').read())
+        # Need to write a read all function - that we can call
+        responce = json.loads(fOneSoc.recv(2048))
+        if not (client_parse_verify(responce,key)):
+            print("Error in verifying the certificate")
+            return False
+   
     # Close Connection/Socket
     fOneSoc.shutdown(socket.SHUT_RD)
     fOneSoc.close()
@@ -239,6 +224,24 @@ if __name__ == "__main__":
     else:
         print("Error in parsing flags! Missing --name flag")
         exit()
+
+    if not (os.path.exists("Keys/ClientKeys/")):
+        # Make Keys Directory
+        os.makedirs(os.path.dirname("Keys/ClientKeys/"), exist_ok=True)
+
+        # Create Public and Private RSA key pair
+        key = RSA.generate(2048)
+        private_key = key.export_key()
+        file_out = open("Keys/ClientKeys/private.pem", "wb")
+        file_out.write(private_key)
+        file_out.close()
+
+        public_key = key.publickey().export_key()
+        file_out = open("Keys/ClientKeys/receiver.pem", "wb")
+        file_out.write(public_key)
+        file_out.close()
+
+
 
     # Initalize the connection
     drivert = Thread(target = client_Driver, args = (name, network, 0))

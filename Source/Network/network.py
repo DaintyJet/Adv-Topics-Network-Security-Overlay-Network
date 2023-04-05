@@ -27,8 +27,7 @@ ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
 class Server:
     def __init__(self, port):
         self.port = port
-        self.clients = { "Hostname":[],"HostIP":[] }                                   #storing the clients
-        #self.lock = threading.Lock()
+        self.clients = { "Hostname":[],"HostIP":[], "Cert":{}} #storing the clients
         self.list_lock = threading.Semaphore(1)
 
     def start(self):
@@ -129,66 +128,42 @@ class Server:
             self.list_lock.acquire()
             # Success, Already registered, Failure
             response = {"Flag":0, "NetworkIP":ip, "Current-Time":int(round(datetime.now().timestamp()))}
+            
+
             # This is going to parse the registering message
                 # is it already registered
             if ( msg["ClientName"] not in self.clients["Hostname"] and msg["HostIP"] not in self.clients["HostIP"]):
-                cert_hash_function = SHA256.new()
                 # Registering the client
-                # Create a certificate
-                    # User a JSON Dictionary or something
-                cert = json.dumps({"ClientName":msg["ClientName"], "ClientIP":msg["HostIP"] ,"ClientPubKey":str(msg["ClientPubKey"])})
-                #t1 = cert_hash_function.update(cert)
-                
-                #
-                #t2 = cert_hash_function.hexdigest()
 
+                # Inform the client the status of the transaction
+                responce["Flag"] = 1
+                conn.sendall(responce)
+                
+                # Create a certificate
+                cert = json.dumps({"ClientName":msg["ClientName"], "ClientIP":msg["HostIP"] ,"ClientPubKey":str(msg["ClientPubKey"])})
 
                 key = RSA.import_key(open('server_private.pem').read())
-                h = SHA256.new()
-                h.update(cert.encode("utf8"))
+                h = SHA256.new(cert.encode("utf8"))
                 signature = (pkcs1_15.new(key).sign(h)).hex()
                 
-                
-                print(f'\n\nCert Str:\n {cert.encode("utf8")}\n\n Signature:\n{signature} \n\n Hash: \n{str(h.hexdigest())}')
-
-                # Debug TEsting 
-                try:
-                    key = RSA.import_key(open('server_receiver.pem').read())
-                    print(f"\n\n Key: {key.export_key()}\n")
-
-                    pkcs1_15.new(key).verify(h, signature)
-                    print("The signature is valid.")
-                except (ValueError, TypeError):
-                     print("error")
-                
-                # Debug TEsting END
                 response = json.dumps({"Message":cert, "Signature": signature})
 
                 conn.sendall(response.encode("utf8"))
 
-                #private_key = key.export_key()
-                #file_out = open("server_private.pem", "wb")
-                #file_out.write(private_key)
-                #file_out.close()
-                
                 # We store the necessary info
                 self.clients["Hostname"].append(msg["ClientName"])
                 self.clients["HostIP"].append(msg["HostIP"])
-
-                # Store the cert in the dictionary 
+                self.clients["Cert"].append(response)
                 
                 # Write Dictionary to the file 
                 with open("client-list.json", "w") as FILE:
                     FILE.write(json.dumps(self.clients))
+                
             else:
-                response["Flag"] = 1
-            # When implementing security we may generate a cert for the client.
-            # Respond to the client
-            conn.send(json.dumps(response).encode("utf8"))
+                # Respond to the client - saying they are already registered 
+                conn.send(json.dumps(response).encode("utf8"))
             self.list_lock.release()
-            
-        print(msg)
-
+        
         conn.shutdown(socket.SHUT_RDWR)
         conn.close()
         #while True:
