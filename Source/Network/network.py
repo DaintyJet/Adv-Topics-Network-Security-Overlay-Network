@@ -133,7 +133,7 @@ class Server:
                 # Registering the client
 
                 # Inform the client the status of the transaction
-                responce["Flag"] = 1
+                response["Flag"] = 1
                 conn.sendall(responce)
                 
                 # Create a certificate

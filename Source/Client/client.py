@@ -65,7 +65,7 @@ def client_listen(hostname, Key):
 # This is not waiting the appropriate amount of time, this is a known issue, currently for testing
 def client_Driver(hostname, netIP, Key):
 
-    flow1_Initial_Conn(hostname, netIP)
+    flow1_Initial_Conn(hostname, netIP, Key)
     
     global clients, thrdContinue
     flow2t = Thread(target = flow2_Get_Online , args = (hostname, netIP, Key,))
@@ -172,7 +172,7 @@ def flow2_Get_Online(hostname, netIP, Key):
     #return clients
 
 # Return true or false 
-def flow1_Initial_Conn(hostname, netIP):
+def flow1_Initial_Conn(hostname, netIP, public_key):
     # create the socket
     fOneSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Connect the socket to the network controller
@@ -188,7 +188,8 @@ def flow1_Initial_Conn(hostname, netIP):
     
     # If we receive a flag of value 0 we would need to parse the message containing the client certificate (this will need to be verified)
     # Otherwise we have no need to do anything as we do not have a certificate
-    if (responce["Flag"] == 0):
+    print(responce, end="\n\n")
+    if (responce["Flag"] == 1):
         key = RSA.import_key(open('../Certificate/server_certificate.cert').read())
         # Need to write a read all function - that we can call
         responce = json.loads(fOneSoc.recv(2048))
@@ -244,7 +245,7 @@ if __name__ == "__main__":
 
 
     # Initalize the connection
-    drivert = Thread(target = client_Driver, args = (name, network, 0))
+    drivert = Thread(target = client_Driver, args = (name, network, RSA.import_key(open("Keys/ClientKeys/receiver.pem").read())))
     # Make the driver thread a daemon thread so it is killed once the main is exited 
     drivert.daemon = True
     drivert.start()
