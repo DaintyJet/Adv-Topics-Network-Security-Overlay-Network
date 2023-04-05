@@ -189,7 +189,7 @@ def flow1_Initial_Conn(hostname, netIP):
     # If we receive a flag of value 0 we would need to parse the message containing the client certificate (this will need to be verified)
     # Otherwise we have no need to do anything as we do not have a certificate
     if (responce["Flag"] == 0):
-        key = RSA.import_key(open('../Network/server_receiver.pem').read())
+        key = RSA.import_key(open('../Certificate/server_certificate.cert').read())
         # Need to write a read all function - that we can call
         responce = json.loads(fOneSoc.recv(2048))
         if not (client_parse_verify(responce,key)):

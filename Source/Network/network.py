@@ -12,12 +12,17 @@ from Crypto.PublicKey import RSA
 import socket
 # import ssl functions for network <-> client communications
 # import ssl
+
 # Import threading to support multithreaded 
 import threading
+# Import subprocess for generating certificates 
+import subprocess
+
 # Import Json for json functions!
 import json
+# Import OS functionality
 import os
-import time
+#import time
 
 # Used to get the IP of the machine (eth0)
 #import netifaces as ni
@@ -44,17 +49,9 @@ class Server:
 
         print(f'Server listening on port {self.port}')
 
+        
         # Create Public and Private RSA key pair
-        key = RSA.generate(2048)
-        private_key = key.export_key()
-        file_out = open("server_private.pem", "wb")
-        file_out.write(private_key)
-        file_out.close()
-
-        public_key = key.publickey().export_key()
-        file_out = open("server_receiver.pem", "wb")
-        file_out.write(public_key)
-        file_out.close()
+        #subprocess.run("openssl", "req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj \"/C=US/L=Lowell/CN=127.0.0.1\" -keyout ../Certificate/server_key.key -out ../Certificate/server_certificate.cert")
 
         while True:
             try:
@@ -142,7 +139,7 @@ class Server:
                 # Create a certificate
                 cert = json.dumps({"ClientName":msg["ClientName"], "ClientIP":msg["HostIP"] ,"ClientPubKey":str(msg["ClientPubKey"])})
 
-                key = RSA.import_key(open('server_private.pem').read())
+                key = RSA.import_key(open('../Certificate/server_key.key').read())
                 h = SHA256.new(cert.encode("utf8"))
                 signature = (pkcs1_15.new(key).sign(h)).hex()
                 
