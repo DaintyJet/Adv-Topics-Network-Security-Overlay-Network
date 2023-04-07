@@ -20,6 +20,9 @@ import threading
 import json
 # Import OS functionality
 import os
+
+
+import base64
 # Used to get the IP of the machine (eth0)
 #import netifaces as ni
 ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
@@ -43,6 +46,14 @@ class Server:
         self.sock.bind(("0.0.0.0", self.port))
         self.sock.listen(5)
 
+
+        # Create the SSL socket
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        # Load server's cert and key
+        context.load_cert_chain(certfile="../Certificate/server_certificate.pem", keyfile="../Certificate/server_key.key")
+        
+
+
         print(f'Server listening on port {self.port}')
 
         
@@ -51,10 +62,11 @@ class Server:
 
         while True:
             try:
-                # may want to pass addr as arg
+                # Want to add exception handling
                 conn, addr = self.sock.accept()
+                wrapped_conn = context.wrap_socket(conn, server_side=True)
                 print(f'New client connected: {addr}')
-                threading.Thread(target=self.handle_client, args=(conn,addr)).start()
+                threading.Thread(target=self.handle_client, args=(wrapped_conn,addr)).start()
             except socket.timeout as ERR:
                 pass
 
@@ -65,14 +77,15 @@ class Server:
     #   Clients, IPs, <Certs?> 
     def handle_client(self, conn, addr):
 
-        clientmsg = bytearray()
-        while True:
-            temp = conn.recv(2048)
-            if not temp:
-                 break
-            clientmsg.extend(temp)
+        #clientmsg = bytearray()
+        #while True:
+            #temp = conn.recv(2048)
+            #if not temp:
+                 #break
+            #clientmsg.extend(temp)
+        clientmsg = conn.recv(2048)
         msg = json.loads(clientmsg)
-
+        print(msg)
         # Extract symmetric key from the message, using the server's private key to decrypt it
 
         # Extract contents of the message with the symmetric key (AES - GCM)
@@ -112,7 +125,7 @@ class Server:
 
 
             # Send reply (try sendall later)
-            conn.sendall(json.dumps(response).encode("utf8"))
+            conn.send(json.dumps(response).encode("utf8"))
 
             # Release the lock
             self.list_lock.release()
@@ -130,8 +143,7 @@ class Server:
 
                 # Inform the client the status of the transaction
                 response["Flag"] = 1
-                print(response)
-                conn.sendall(json.dumps(response).encode())
+                conn.write(json.dumps(response).encode())
                 
                 # Create a certificate
                 cert = json.dumps({"ClientName":msg["ClientName"], "ClientIP":msg["HostIP"] ,"ClientPubKey":str(msg["ClientPubKey"])})
@@ -142,7 +154,7 @@ class Server:
                 
                 response = json.dumps({"Message":cert, "Signature": signature})
 
-                conn.sendall(response.encode("utf8"))
+                conn.send(response.encode("utf8"))
 
                 # We store the necessary info
                 self.clients["Hostname"].append(msg["ClientName"])
@@ -154,7 +166,8 @@ class Server:
                     FILE.write(json.dumps(self.clients))
                 
             else:
-                # Respond to the client - saying they are already registered 
+                # Respond to the client - saying they are already registered
+                print(response)
                 conn.send(json.dumps(response).encode("utf8"))
             self.list_lock.release()
         

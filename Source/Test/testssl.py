@@ -16,7 +16,7 @@ context.load_verify_locations(cafile="../Certificate/server_certificate.pem")
 #context = ssl.create_default_context()
 
 # Wrap a new socket with the ssl context
-conn = context.wrap_socket(socket.socket(socket.AF_INET),
+conn = context.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM),
                            server_hostname="localhost")
 # Use the wrapped socket to connect to the server.
 conn.connect(("127.0.0.1", 10023))
@@ -28,5 +28,8 @@ cert = conn.getpeercert()
 print(cert)
 
 conn.send("Hello".encode())
+#conn.shutdown(socket.SHUT_WR)
+msg = conn.read(2048)
+print(msg)
 
 

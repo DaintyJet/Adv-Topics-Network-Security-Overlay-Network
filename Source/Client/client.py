@@ -8,12 +8,16 @@ from threading import *
 from time import sleep
 # Import socket for network functionality
 import socket
+# Import ssl for ssl context stuff
+import ssl
 # Import the jason library for serializing and deserializing data
 import json
 # Import sys for command line arguments 
 import sys
 # Import os for path and file manipulation
 import os
+
+import base64
 
 # Crypto 
 from Crypto.Signature import pkcs1_15
@@ -27,10 +31,19 @@ from Crypto.PublicKey import RSA
 ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
 
 
+
+## Good practices are in use - see the global variables below
+
+# Ports in use
 NetPort = 9999
 PeerPort = 9998
 # Create a global Semaphore for managing access to the clients list
 client_lock = Semaphore(1)
+# Create a default context
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+## May need to add a directory location once clients are added.
+context.load_verify_locations(cafile="../Certificate/server_certificate.pem")
+print(type(context))
 
 # Create a global variable for managing the continuation of the program
 # If we get an extra run this is not too major so we will try without mutexs
@@ -133,11 +146,11 @@ def flow3_ping(clientName, ClientAddr, Key):
     fThreeSoc.close()
 
 def flow2_Get_Online(hostname, netIP, Key):
-    global clients
+    global clients, context
     while thrdContinue:
         sleep(10)
-
-        fTwoSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Create a ssl wrapped socket for connections to the server
+        fTwoSoc = context.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=netIP)
         fTwoSoc.connect((netIP, NetPort))
 
         # Send message formatted for requesting online users
@@ -174,19 +187,24 @@ def flow2_Get_Online(hostname, netIP, Key):
 
 # Return true or false 
 def flow1_Initial_Conn(hostname, netIP, public_key):
+    global context
+    print(type(context))
     # create the socket
-    fOneSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    fOneSoc = context.wrap_socket(socket.socket(socket.AF_INET), server_hostname="localhost")
+    print(type(fOneSoc))
     # Connect the socket to the network controller
     fOneSoc.connect((netIP, NetPort))
-    
+    print(type(fOneSoc))
+
     # Initial message contains everything, later separate them out 
     mssg = json.dumps({"Flag": 0, "ClientName": hostname, "HostIP":ip, "ClientPubKey":str(public_key),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
-    fOneSoc.sendall(mssg)
-    fOneSoc.shutdown(socket.SHUT_WR)
+    fOneSoc.write(mssg) # Was send all
+    #fOneSoc.shutdown(socket.SHUT_WR)
 
     # This first message should be whether we are registered or not.
-    responce = json.loads(fOneSoc.recv(2048))
-    
+    responce = ((fOneSoc.recv(2048))) #json.loads
+    print (responce)
+    exit()
     # If we receive a flag of value 0 we would need to parse the message containing the client certificate (this will need to be verified)
     # Otherwise we have no need to do anything as we do not have a certificate
     print(responce, end="\n\n")

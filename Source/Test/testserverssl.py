@@ -5,23 +5,27 @@ import socket
 import ssl
 
 # Function provided by docs
-def deal_with_client(connstream):
+def deal_with_client(conn):
     data = connstream.recv(1024)
     # empty data means the client is finished with us
-    while data:
+    
+    print(data)
         
-        print(data)
-        data = connstream.recv(1024)
+       
     # finished with client
+    print("Done")
+    conn.send("msg".encode())
+
 
 # Create a server context
 context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+
 # Load server's cert and key
 context.load_cert_chain(certfile="../Certificate/server_certificate.pem", keyfile="../Certificate/server_key.key")
 
 
 # Create normal socket so we can accept connections
-bindsocket = socket.socket()
+bindsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 bindsocket.bind(('localhost', 10023))
 bindsocket.listen(5)
 
