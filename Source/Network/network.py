@@ -96,7 +96,7 @@ class Server:
             # Parse the msg, TRUE IS PLACEHOLDER
             if ( msg["ClientName"] not in self.clients["Hostname"] and msg["HostIP"] not in self.clients["HostIP"]):
                 # If the client is not registered we should not be providing information
-                conn.send(json.dumps({"Flag":-1, "NetworkIP":ip, "Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8"))
+                conn.write(json.dumps({"Flag":-1, "NetworkIP":ip, "Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8"))
                 # Nothing else is needed, return.
                 return
             
@@ -116,6 +116,7 @@ class Server:
                 # If failure shutdown and close the connection then return
 
             # Generate response 
+            print("SUCCSESFUL UPDATE")
             response = {"Flag":2, "NetworkIP":ip, "Clients": self.clients["Hostname"], "IPs":self.clients["HostIP"], "Certs":self.clients["Cert"], "Current-Time":int(round(datetime.now().timestamp()))}
 
             # Encrypt Response with the symmetric key PROVIDED BY THE CLIENT EARLIER
@@ -125,7 +126,7 @@ class Server:
 
 
             # Send reply (try sendall later)
-            conn.send(json.dumps(response).encode("utf8"))
+            conn.write(json.dumps(response).encode("utf8"))
 
             # Release the lock
             self.list_lock.release()
@@ -154,7 +155,7 @@ class Server:
                 
                 response = json.dumps({"Message":cert, "Signature": signature})
 
-                conn.send(response.encode("utf8"))
+                conn.write(response.encode("utf8"))
 
                 # We store the necessary info
                 self.clients["Hostname"].append(msg["ClientName"])
@@ -168,7 +169,7 @@ class Server:
             else:
                 # Respond to the client - saying they are already registered
                 print(response)
-                conn.send(json.dumps(response).encode("utf8"))
+                conn.write(json.dumps(response).encode("utf8"))
             self.list_lock.release()
         
         conn.shutdown(socket.SHUT_RDWR)

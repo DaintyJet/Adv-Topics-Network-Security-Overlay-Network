@@ -109,7 +109,7 @@ def flow3_pong (hostname, conn, add_port, Key):
             print(f"PONG > {test}")
 
             mssg = json.dumps({"PING":0,"ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
-            conn.send(mssg)
+            conn.write(mssg)
 
 
 def flow3_ping(clientName, ClientAddr, Key):
@@ -127,7 +127,7 @@ def flow3_ping(clientName, ClientAddr, Key):
         print(f"PING > {clientName}")
 
         # Send message to the Client, requesting all online accounts 
-        fThreeSoc.send(mssg)
+        fThreeSoc.write(mssg)
 
         responce = json.loads(fThreeSoc.recv(1024))
         # Testing!
@@ -150,27 +150,27 @@ def flow2_Get_Online(hostname, netIP, Key):
     while thrdContinue:
         sleep(10)
         # Create a ssl wrapped socket for connections to the server
-        fTwoSoc = context.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=netIP)
+        fTwoSoc = context.wrap_socket(socket.socket(socket.AF_INET), server_hostname=netIP)
         fTwoSoc.connect((netIP, NetPort))
 
         # Send message formatted for requesting online users
         mssg = json.dumps({"Flag":1,"ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
         
         # Send message to the server, requesting all online accounts 
-        fTwoSoc.send(mssg)
+        fTwoSoc.write(mssg)
         # Shut down writing to the socket
-        fTwoSoc.shutdown(socket.SHUT_WR)
+        #fTwoSoc.shutdown(socket.SHUT_WR)
         # Protect the client arr
         client_lock.acquire()
 
         # deserialize array, and return contents
         responce = bytearray()
         while True:
-            temp = fTwoSoc.recv(2046)
+            temp = fTwoSoc.recv(2048)
             if not temp:
                  break
             responce.extend(temp)
-        
+        print(responce)
         clients= json.loads(responce) 
 
         # Debugging
@@ -188,13 +188,10 @@ def flow2_Get_Online(hostname, netIP, Key):
 # Return true or false 
 def flow1_Initial_Conn(hostname, netIP, public_key):
     global context
-    print(type(context))
     # create the socket
     fOneSoc = context.wrap_socket(socket.socket(socket.AF_INET), server_hostname="localhost")
-    print(type(fOneSoc))
     # Connect the socket to the network controller
     fOneSoc.connect((netIP, NetPort))
-    print(type(fOneSoc))
 
     # Initial message contains everything, later separate them out 
     mssg = json.dumps({"Flag": 0, "ClientName": hostname, "HostIP":ip, "ClientPubKey":str(public_key),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
@@ -202,9 +199,9 @@ def flow1_Initial_Conn(hostname, netIP, public_key):
     #fOneSoc.shutdown(socket.SHUT_WR)
 
     # This first message should be whether we are registered or not.
-    responce = ((fOneSoc.recv(2048))) #json.loads
+    responce = (json.loads(fOneSoc.recv(2048))) #json.loads
     print (responce)
-    exit()
+    
     # If we receive a flag of value 0 we would need to parse the message containing the client certificate (this will need to be verified)
     # Otherwise we have no need to do anything as we do not have a certificate
     print(responce, end="\n\n")
