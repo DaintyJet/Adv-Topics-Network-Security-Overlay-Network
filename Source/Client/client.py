@@ -68,6 +68,7 @@ def client_Driver(hostname, netIP, Key):
     flow1_Initial_Conn(hostname, netIP, Key)
     
     global clients, thrdContinue
+    
     flow2t = Thread(target = flow2_Get_Online , args = (hostname, netIP, Key,))
     flow2t.daemon = True
     flow2t.start()
@@ -76,7 +77,6 @@ def client_Driver(hostname, netIP, Key):
     flow3t = Thread(target = client_listen , args = (hostname, Key,))
     flow3t.daemon = True
     flow3t.start()
-
     while thrdContinue:
         sleep(15)
         client_lock.acquire()
@@ -88,8 +88,9 @@ def client_Driver(hostname, netIP, Key):
     
 def flow3_pong (hostname, conn, add_port, Key):
             # Decrypt and validate user
+            print("FLow3")
             recv = json.loads(conn.recv(1024))
-
+            print("FLow3 B")
             # Ugly
             test = recv["ClientName"]
             print(f"PONG > {test}")
@@ -152,7 +153,7 @@ def flow2_Get_Online(hostname, netIP, Key):
         # deserialize array, and return contents
         responce = bytearray()
         while True:
-            temp = fTwoSoc.recv(2048)
+            temp = fTwoSoc.recv(2046)
             if not temp:
                  break
             responce.extend(temp)
@@ -190,12 +191,14 @@ def flow1_Initial_Conn(hostname, netIP, public_key):
     # Otherwise we have no need to do anything as we do not have a certificate
     print(responce, end="\n\n")
     if (responce["Flag"] == 1):
-        key = RSA.import_key(open('../Certificate/server_certificate.cert').read())
+        key = RSA.import_key(open('../Certificate/server_certificate.pem').read())
         # Need to write a read all function - that we can call
         responce = json.loads(fOneSoc.recv(2048))
         if not (client_parse_verify(responce,key)):
             print("Error in verifying the certificate")
             return False
+        else:
+            print("Cert is Good")
    
     # Close Connection/Socket
     fOneSoc.shutdown(socket.SHUT_RD)

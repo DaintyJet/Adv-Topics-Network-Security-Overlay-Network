@@ -11,19 +11,15 @@ from Crypto.PublicKey import RSA
 # Import socket from socket functions
 import socket
 # import ssl functions for network <-> client communications
-# import ssl
+import ssl
 
 # Import threading to support multithreaded 
 import threading
-# Import subprocess for generating certificates 
-import subprocess
 
 # Import Json for json functions!
 import json
 # Import OS functionality
 import os
-#import time
-
 # Used to get the IP of the machine (eth0)
 #import netifaces as ni
 ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
@@ -32,7 +28,7 @@ ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
 class Server:
     def __init__(self, port):
         self.port = port
-        self.clients = { "Hostname":[],"HostIP":[], "Cert":{}} #storing the clients
+        self.clients = { "Hostname":[],"HostIP":[], "Cert":[]} #storing the clients
         self.list_lock = threading.Semaphore(1)
 
     def start(self):
@@ -51,7 +47,7 @@ class Server:
 
         
         # Create Public and Private RSA key pair
-        #subprocess.run("openssl", "req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj \"/C=US/L=Lowell/CN=127.0.0.1\" -keyout ../Certificate/server_key.key -out ../Certificate/server_certificate.cert")
+        #subprocess.run("openssl", "req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj \"/C=US/L=Lowell/CN=127.0.0.1\" -keyout ../Certificate/server_key.key -out ../Certificate/server_certificate.pem")
 
         while True:
             try:
@@ -69,13 +65,13 @@ class Server:
     #   Clients, IPs, <Certs?> 
     def handle_client(self, conn, addr):
 
-        responce = bytearray()
+        clientmsg = bytearray()
         while True:
             temp = conn.recv(2048)
             if not temp:
                  break
-            responce.extend(temp)
-        msg = json.loads(responce)
+            clientmsg.extend(temp)
+        msg = json.loads(clientmsg)
 
         # Extract symmetric key from the message, using the server's private key to decrypt it
 
@@ -107,7 +103,7 @@ class Server:
                 # If failure shutdown and close the connection then return
 
             # Generate response 
-            response = {"Flag":2, "NetworkIP":ip, "Clients": self.clients["Hostname"], "IPs":self.clients["HostIP"], "Current-Time":int(round(datetime.now().timestamp()))}
+            response = {"Flag":2, "NetworkIP":ip, "Clients": self.clients["Hostname"], "IPs":self.clients["HostIP"], "Certs":self.clients["Cert"], "Current-Time":int(round(datetime.now().timestamp()))}
 
             # Encrypt Response with the symmetric key PROVIDED BY THE CLIENT EARLIER
              
@@ -134,7 +130,8 @@ class Server:
 
                 # Inform the client the status of the transaction
                 response["Flag"] = 1
-                conn.sendall(responce)
+                print(response)
+                conn.sendall(json.dumps(response).encode())
                 
                 # Create a certificate
                 cert = json.dumps({"ClientName":msg["ClientName"], "ClientIP":msg["HostIP"] ,"ClientPubKey":str(msg["ClientPubKey"])})

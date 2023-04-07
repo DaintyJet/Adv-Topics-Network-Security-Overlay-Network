@@ -17,8 +17,16 @@ openssl x509 -text -noout -in server_certificate.pem
 
 After a quick google we can do this all in one step
 ``` sh
-$ openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj "/C=US/L=Lowell/CN=127.0.0.1" -keyout server_key.key -out server_certificate.cert
+$ openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj "/C=US/L=Lowell/CN=localhost" -keyout server_key.key -out server_certificate.pem
 ```
+
+
+## Note
+Cert with Common Name = "127.0.0.1" did not work, localhost did
 
 # Reference
 https://www.ibm.com/docs/en/api-connect/2018.x?topic=overview-generating-self-signed-certificate-using-openssl 
+
+
+https://www.digicert.com/kb/ssl-support/pem-ssl-creation.htm
+^^^ This talks about cert chains (files with a chain of trusted certs...)
