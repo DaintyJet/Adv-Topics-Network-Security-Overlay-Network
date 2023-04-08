@@ -6,7 +6,7 @@ from Crypto.Hash import SHA256
 from Crypto.Cipher import AES, PKCS1_OAEP
 # For Signatures
 from Crypto.Signature import pkcs1_15
-# Import RAS PK Functions
+# Import RSA PK Functions
 from Crypto.PublicKey import RSA
 # Import socket from socket functions
 import socket
@@ -22,8 +22,8 @@ import json
 import os
 
 # Used to get the IP of the machine (eth0)
-#import netifaces as ni
-ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+import netifaces as ni
+ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr'] # = "127.0.0.1" #
 
 # Server Class
 class Server:

@@ -28,8 +28,8 @@ from Crypto.PublicKey import RSA
 # Does not work on Matts Machine do ip = <LOCAL>
 # sorry for that
 # Used to get the IP of the machine (eth0)
-#import netifaces as ni
-ip = "127.0.0.1" #ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+import netifaces as ni
+ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr'] # = "127.0.0.1" # May need to replace 
 
 
 
