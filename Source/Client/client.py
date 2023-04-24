@@ -182,7 +182,7 @@ def flow3_pong (hostname, conn, add_port, Key):
             mssg = json.dumps({"PING":0,"ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
             
             # send the message
-            conn.write(mssg)
+            conn.send(mssg)
 
 # This function handles the Pinging of clients recived in the list 
 # from the server in flow 2
@@ -220,7 +220,7 @@ def flow3_ping(clientName, ClientAddr, Key):
         print(f"PING > {clientName}")
 
         # Send message to the Client, requesting all online accounts 
-        fThreeSoc.write(mssg)
+        fThreeSoc.sendall(mssg)
 
         # Load Response 
         responce = json.loads(fThreeSoc.recv(1024))
@@ -270,7 +270,7 @@ def flow2_Get_Online(hostname, netIP, Key):
         mssg = json.dumps({"Flag":1,"ClientName": hostname, "HostIP":ip,"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
         
         # Send message to the server, requesting all online accounts 
-        fTwoSoc.write(mssg)
+        fTwoSoc.send(mssg)
 
         # Protect the client arr from race conditions
         client_lock.acquire()
@@ -321,7 +321,7 @@ def flow1_Initial_Conn(hostname, netIP, public_key):
     # Initial registration message (Flag:0 is for registration) this will be encrypted as it is through a SSL context
     mssg = json.dumps({"Flag": 0, "ClientName": hostname, "HostIP":ip, "ClientPubKey":str(public_key),"Current-Time":int(round(datetime.now().timestamp()))}).encode("utf8")
     # Write message to socket (send)
-    fOneSoc.write(mssg) 
+    fOneSoc.send(mssg) 
 
     # This first message should be whether we are registered or not.
     responce = (json.loads(fOneSoc.recv(2048)))
