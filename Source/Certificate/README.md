@@ -1,7 +1,7 @@
 Run the following command
 
 ```sh
-$ openssl req -newkey rsa:2048 -nodes -keyout server_key.pem -x509 -days 365 -out server_certificate.pem
+$ openssl req -newkey rsa:2048 -nodes -keyout server_key.key -x509 -days 365 -out server_certificate.pem
 ```
 
 This will generate a self signed certificate.
@@ -17,7 +17,7 @@ openssl x509 -text -noout -in server_certificate.pem
 
 After a quick google we can do this all in one step
 ``` sh
-$ openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj "/C=US/L=Lowell/CN=localhost" -keyout server_key.key -out server_certificate.pem
+$ openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj "/C=US/L=Lowell/CN=student5.c6610.uml.edu" -keyout server_key.key -out server_certificate.pem
 ```
 
 
